@@ -29,12 +29,29 @@ from sklearn.datasets import load_breast_cancer
 # from sklearn.metrics import accuracy_score, classification_report
 
 
+# Where to save the figures
+PROJECT_ROOT_DIR = "."
+CHAPTER_ID = "training_linear_models"
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "Plots", CHAPTER_ID)
 
+os.makedirs(IMAGES_PATH, exist_ok=True)
+
+theta_path_mgd=[]
 
 #Global variables
 CurrentPath ="Not assigned"
 fig = plt.figure()
 #ax = fig.gca(projection='3d')
+
+
+def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    # Save plots to to ./Plots
+    #
+    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
+    print("Saving figure", fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format=fig_extension, dpi=resolution)
 
 
 # Disable print(x) statements
@@ -583,23 +600,6 @@ def OLSRigdeLassoRealData():
 ############ PROJECT 2 ###########
 ##################################
 
-def ConfusionMatrix(YTest,Predictions):
-    cm = metrics.confusion_matrix(YTest, Predictions)
-    plt.figure(figsize=(9,9))
-    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r');
-    plt.ylabel('Actual label');
-    plt.xlabel('Predicted label');
-    all_sample_title = 'Accuracy Score: {0}'.format(score)
-    plt.title(all_sample_title, size = 15);
-    return
-
-def GetStochasticIndecesOfN (N,BucketSize):
-    #Check if buckeds can have the same test data
-    #selveral times?
-    #
-    #SuffeldIndices[] =np.random(1,N) 
-    return
-
 def GetBatchSize (N,ProcOfN):
     # Based on the HW you are running test on, you should set
     # the size and "fraction" of your test and training sets 
@@ -618,6 +618,294 @@ def GetBatchSize (N,ProcOfN):
 
 def GetRandomIndex(Samples):
     return np.random.randint(Samples) 
+
+
+def LinearRegNormEqu(X,y,XBetha):
+    # For testing out the different versions of linear regressen
+    # we construct a "random" Y = ax + b 
+    #
+    # Normal Equation
+    # Finds the " exact" mathematical solution
+    theta_best = np.linalg.inv(XBetha.T.dot(XBetha)).dot(XBetha.T).dot(y)
+
+    X_new = np.array([[0], [2]])
+    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
+    y_predict = X_new_b.dot(theta_best)
+    y_predict
+
+    #Plotting the points in blue
+    plt.plot(X, y, "b.")
+    plt.xlabel("$x_1$", fontsize=18)
+    plt.ylabel("$y$", rotation=0, fontsize=18)
+    plt.axis([0, 2, 0, 15])
+
+    #Plotting the Normal Equation line in red
+    plt.plot(X_new, y_predict, "r-")
+    
+    save_fig("data_plot_normal_equation")
+    plt.show()
+    return
+
+def plot_gradient_descent(X,y,theta, eta, theta_path=None):
+        
+    X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
+    theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
+
+    X_new = np.array([[0], [2]])
+    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
+    y_predict = X_new_b.dot(theta_best)
+    global theta_path_mgd
+
+    m = len(X_b)
+    plt.plot(X, y, "b.")
+    n_iterations = 2000
+    for iteration in range(n_iterations):
+        if iteration < 10:
+            y_predict = X_new_b.dot(theta)
+            style = "b-" if iteration > 0 else "r--"
+            plt.plot(X_new, y_predict, style)
+        gradients = 2/m * X_b.T.dot(X_b.dot(theta) - y)
+        theta = theta - eta * gradients
+        #if theta_path is not None:
+        #    theta_path.append(theta)
+        theta_path_mgd.append(theta)
+    return
+
+def LinearRegFullGD(XBeta,y,Theta):
+    
+    X = 2 * np.random.rand(100, 1)
+    y = 4 + 3 * X + np.random.randn(100, 1)
+
+    np.random.seed(42)
+    theta = np.random.randn(2,1)  # random initialization
+
+    plt.figure(figsize=(10,4))
+    plt.figure()
+    #Eta from topp 0.02, 0.1, 0.5,
+    plt.xlabel("$x_1$", fontsize=18)
+    plt.axis([0, 2, 0, 15])
+    eta=0.01
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+
+    plt.subplot(231); plot_gradient_descent(X,y,theta, eta=0.01)
+    plt.ylabel("$y$", rotation=0, fontsize=18)
+    eta=0.03
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+    plt.subplot(232); plot_gradient_descent(X,y,theta, eta=0.03, theta_path=theta_path_bgd)
+    eta=0.06
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+    plt.subplot(233); plot_gradient_descent(X,y,theta, eta=0.06)
+    eta=0.08
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+    plt.subplot(234); plot_gradient_descent(X,y,theta, eta=0.08)
+    #plt.ylabel("$y$", rotation=0, fontsize=18)
+    eta=0.1
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+    plt.subplot(235); plot_gradient_descent(X,y,theta, eta=0.1,theta_path=theta_path_bgd)
+    eta=0.14
+    plt.title(r"$\eta = {}$".format(eta), fontsize=16)
+    plt.subplot(236); plot_gradient_descent(X,y,theta, eta=0.14)
+    plt.title("Linear regresseion Numbers:100 Iteration:1000")
+    # plt.set_title("Linear regresseion Numbers:100 Iteration:1000")
+    save_fig("gradient_descent_plot")
+    plt.show()
+    return
+
+def LinearRegMiniBatch(X_b,y,m):
+
+    theta_path_mgd = []
+
+    n_iterations = 50
+    minibatch_size = 20
+
+    np.random.seed(42)
+    theta = np.random.randn(2,1)  # random initialization
+
+    t0, t1 = 200, 1000
+    def learning_schedule(t):
+        return t0 / (t + t1)
+
+    t = 0
+    for epoch in range(n_iterations):
+        shuffled_indices = np.random.permutation(m)
+        X_b_shuffled = X_b[shuffled_indices]
+        y_shuffled = y[shuffled_indices]
+        for i in range(0, m, minibatch_size):
+            t += 1
+            xi = X_b_shuffled[i:i+minibatch_size]
+            yi = y_shuffled[i:i+minibatch_size]
+            gradients = 2/minibatch_size * xi.T.dot(xi.dot(theta) - yi)
+            eta = learning_schedule(t)
+            theta = theta - eta * gradients
+            theta_path_mgd.append(theta)
+        
+    return theta_path_mgd
+
+def LinearRegStochasticGD(Samples):
+    # Part 2.A
+    # Write a Stochastic Gradient Descent algoritm to replace the cost function
+    # for OLS and Ridge methods. The previous code for matrix invesion to find betha,
+    # will be replaced med SDGM.
+    # Routine will use Franke's data passed in as "z"
+    # 1) Ramdomized weight mattrix as a starting point.
+    # 2) Calculate the differential, with respect to the cost function.
+    # 2.1 We need a cost funcion for both OLS/MSE & Ridge
+    # 3) Kalkulate for one instance at a time and correct weight.
+    # 4) Repeate until you have reaced a stopin point, or error ≈ 0.
+    # 5) Tune hyperparameters and compare to MSE and Ridge.
+    # Sjekk ut random_indices = np.random.choice(indices, size=5) for bruk
+    # 6) Set up mini batches, based on the total datapoints.
+    # 7) Gjør analyse av size på Minibatch mot total tid mot presisjon
+    # 8) Benytt adagrad (finn eller lage en python fun())
+
+    # som stokastisk selector.
+
+    Samples=100
+    #Epoch = 50
+    Epochs=100
+    p=1
+    
+    np.random.seed(1776)
+
+    # Learning rate parameters
+    # Test different values for t0 & t1
+    t0, t1 = 5, 50   
+    def LearningRate(t):
+        return t0 / (t + t1)
+
+    X = 2 * np.random.rand(100, 1)
+    y = 4 + 3 * X + np.random.randn(100, 1)
+    
+    #Check with the best Theta
+
+    X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
+    theta_path_sgd = []
+    m = len(X_b)
+
+    theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)    
+    X_new = np.array([[0], [2]])
+    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
+
+    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
+    yPredict = X_new_b.dot(theta_best)
+    print(yPredict)
+
+    StepSize = 0.1 #Will be adjusted proportional to the gradient.
+    Weights = np.random.randn(2,1)
+
+    #Loop over # of Epochs
+    for CurrEpoch in range(Epochs):
+        #Loop through 1 full Epoch (Samples)
+        for i in range(Samples):                
+            #MiniBatch=GetRandomBatches(Samples)
+            if CurrEpoch == 0 and i < 10:                   
+                YPredict = X_new_b.dot(Weights)             
+                style = "b-" if i > 0 else "r--"           
+                plt.plot(X_new, YPredict, style)     
+            SelectedIndex=GetRandomIndex(Samples)
+            xSelected = X_b[SelectedIndex:SelectedIndex+1]
+            ySelected = y[SelectedIndex:SelectedIndex+1]
+            Gradient = (2 * xSelected.T.dot(xSelected.dot(Weights) - ySelected))
+            StepSize = LearningRate(CurrEpoch * m + i)
+            Weights = Weights - StepSize * Gradient
+            theta_path_sgd.append(Weights)   
+
+            #gradients = 2 * xi.T.dot(xi.dot(theta) - yi)
+            #eta = learning_schedule(epoch * m + i)
+            #theta = theta - eta * gradients
+            #theta_path_sgd.append(theta)
+
+    #print(Weights)
+    #plt.plot(X, y, "b.")                                 
+    #plt.xlabel("$x_1$", fontsize=18)                
+    #plt.ylabel("$y$", rotation=0, fontsize=18)   
+    #plt.axis([0, 2, 0, 15])                      
+    #save_fig("sgd_plot")                        
+    #plt.show()      
+    return theta_path_sgd
+
+def TestLinearRegression():
+    # Generate random points
+    X= 2 * np.random.rand(100, 1)
+    y = 4 + 3 * X + np.random.randn(100, 1)
+    XBetha = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
+    
+    #Normal Equation
+    #-OK-KRC LinearRegNormEqu(X,y,XBetha)
+
+
+
+    Eta=0.1
+    n_iterations = 1000
+    Instances = 100
+
+    Theta = np.random.randn(2,1)  # random initialization
+
+    for iteration in range(n_iterations):
+        Grad = 2/Instances * XBetha.T.dot(XBetha.dot(Theta) - y)
+        Theta = Theta - Eta * Grad
+    
+    # Test batch/full gradient descent
+    # for different learning rates
+    theta_path_mgd = []
+
+    #KRCC Denne rutinen skal splittes op
+    theta_path_bgd=LinearRegFullGD(XBetha,y,Theta)
+
+    theta_path_sgd=LinearRegStochasticGD(Instances)
+
+    #Map the descent to min for the tree methods
+    theta_path_mgd=LinearRegMiniBatch(XBetha,y,Instances)
+
+
+    #theta_path_bgd = np.array(theta_path_bgd)
+    theta_path_sgd = np.array(theta_path_sgd)
+    theta_path_mgd = np.array(theta_path_mgd)
+
+    plt.figure(figsize=(7,4))
+    plt.plot(theta_path_sgd[:, 0], theta_path_sgd[:, 1], "r-s", linewidth=1, label="Stochastic")
+    plt.plot(theta_path_mgd[:, 0], theta_path_mgd[:, 1], "g-+", linewidth=2, label="Mini-batch")
+    plt.plot(theta_path_bgd[:, 0], theta_path_bgd[:, 1], "b-o", linewidth=3, label="Batch")
+    plt.legend(loc="upper left", fontsize=16)
+    plt.xlabel(r"$\theta_0$", fontsize=20)
+    plt.ylabel(r"$\theta_1$   ", fontsize=20, rotation=0)
+    plt.axis([2.5, 4.5, 2.3, 3.9])
+    save_fig("gradient_descent_paths_plot")
+    plt.show()
+    return
+
+def update_mini_batch(self, mini_batch, eta):
+        """Update the network's weights and biases by applying
+        gradient descent using backpropagation to a single mini batch.
+        The ``mini_batch`` is a list of tuples ``(x, y)``, and ``eta``
+        is the learning rate."""
+        nabla_b = [np.zeros(b.shape) for b in self.biases]
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+        for x, y in mini_batch:
+            delta_nabla_b, delta_nabla_w = self.backprop(x, y)
+            nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+            nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        self.weights = [w-(eta/len(mini_batch))*nw
+                        for w, nw in zip(self.weights, nabla_w)]
+        self.biases = [b-(eta/len(mini_batch))*nb
+                       for b, nb in zip(self.biases, nabla_b)]
+
+def ConfusionMatrix(YTest,Predictions):
+    cm = metrics.confusion_matrix(YTest, Predictions)
+    plt.figure(figsize=(9,9))
+    sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square = True, cmap = 'Blues_r');
+    plt.ylabel('Actual label');
+    plt.xlabel('Predicted label');
+    all_sample_title = 'Accuracy Score: {0}'.format(score)
+    plt.title(all_sample_title, size = 15);
+    return
+
+def GetStochasticIndecesOfN (N,BucketSize):
+    #Check if buckeds can have the same test data
+    #selveral times?
+    #
+    #SuffeldIndices[] =np.random(1,N) 
+    return
 
 def GetRandomBatches(Samples):
     # Split the samples into buckets and
@@ -960,9 +1248,7 @@ class DeepNeuralNettwork():
     yhat[yhat<=0.5]=0
     return np.squeeze(yhat)
 
-
-
-def TestDeepNeuralNetwork():
+def TestCasesDeepNeuralNetwork(NNTestNumber,LRate,Epochs):
     bc = load_breast_cancer()
     bc = load_breast_cancer()
     X, y = bc.data, bc.target
@@ -971,58 +1257,118 @@ def TestDeepNeuralNetwork():
 
     X_train.shape
 
-    print('-------Start Test case #1 ------- ')
-    NN_ARCHITECTURE = [
-        {"input_dim": 30, "output_dim": 32, "activation": "relu"}, # Input Layer
-        {"input_dim": 32, "output_dim": 64, "activation": "relu"},# Hidden Layer -- 1
-        {"input_dim": 64, "output_dim": 64, "activation": "relu"},# Second Hidden Layer
-        {"input_dim": 64, "output_dim": 32, "activation": "relu"},# Third Hidden Layer
-        {"input_dim": 32, "output_dim": 1,  "activation": "sigmoid"},# Output Layer
-    ]
+    if NNTestNumber == 1:
+        print('-------Start Test case #1 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30, "output_dim": 32, "activation": "relu"}, # Input Layer
+            {"input_dim": 32, "output_dim": 64, "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 64, "output_dim": 64, "activation": "relu"},# Second Hidden Layer
+            {"input_dim": 64, "output_dim": 32, "activation": "relu"},# Third Hidden Layer
+            {"input_dim": 32, "output_dim": 1,  "activation": "sigmoid"},# Output Layer
+        ]
+        net1 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net1.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net1.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #1 ------- ')
+    elif (NNTestNumber==2):
+        print('-------Start Test case #2 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30,  "output_dim": 32,  "activation": "relu"}, # Input Layer
+            {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Second Hidden Layer
+            {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Third Hidden Layer
+            {"input_dim": 32,  "output_dim": 1,   "activation": "sigmoid"},# Output Layer
+        ]
+        net2 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net2.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net2.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #2 ------- ')
+    elif (NNTestNumber==3):
+        print('-------Start Test case #3 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30,  "output_dim": 32,  "activation": "relu"}, # Input Layer
+            {"input_dim": 32,  "output_dim": 16,  "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 16,  "output_dim": 16,  "activation": "relu"},# Second Hidden Layer
+            {"input_dim": 16,  "output_dim": 16,  "activation": "relu"},# Third Hidden Layer
+            {"input_dim": 16,  "output_dim": 1,   "activation": "sigmoid"},# Output Layer
+        ]
+        net3 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net3.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net3.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #3 ------- ')
+    elif (NNTestNumber==4):
+        print('-------Start Test case #4 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30,  "output_dim": 32,  "activation": "relu"}, # Input Layer
+            {"input_dim": 32,  "output_dim": 16,  "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 16,  "output_dim": 1,   "activation": "sigmoid"},# Output Layer
+        ]
+        net4 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net4.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net4.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #4 ------- ')
+    elif (NNTestNumber==5):
+        print('-------Start Test case #5 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30, "output_dim": 32, "activation": "relu"}, # Input Layer
+            {"input_dim": 32, "output_dim": 64, "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 64, "output_dim": 64, "activation": "relu"},# Second Hidden Layer
+            {"input_dim": 64, "output_dim": 32, "activation": "relu"},# Third Hidden Layer
+            {"input_dim": 32, "output_dim": 1,  "activation": "sigmoid"},# Output Layer
+        ]
+        net4 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net4.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net4.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #5 ------- ')
+    elif (NNTestNumber==6):
+        print('-------Start Test case #6 ------- ')
+        NN_ARCHITECTURE = [
+            {"input_dim": 30, "output_dim": 32, "activation": "relu"}, # Input Layer
+            {"input_dim": 32, "output_dim": 84, "activation": "relu"},# Hidden Layer -- 1
+            {"input_dim": 84, "output_dim": 84, "activation": "relu"},# Hidden Layer -- 2
+            {"input_dim": 84, "output_dim": 84, "activation": "relu"},# Hidden Layer -- 3
+            {"input_dim": 84, "output_dim": 32, "activation": "relu"},# Hidden Layer -- 4
+            {"input_dim": 32, "output_dim": 1,  "activation": "sigmoid"},# Output Layer
+        ]
+        net4 = DeepNeuralNettwork(NN_ARCHITECTURE)
+        net4.fit(X_train, y_train, epochs=Epochs, learning_rate=LRate, verbose=True, show_loss=True)
+        predictions = net4.predict(X_test.T)
+        #accuracy_score(y_test, predictions)
+        print(accuracy_score(y_test, predictions))
+        print('-------Finished Tescase #6 ------- ')
+    return
 
-    net1 = DeepNeuralNettwork(NN_ARCHITECTURE)
-    net1.fit(X_train, y_train, epochs=3001, learning_rate=0.003, verbose=True, show_loss=True)
+def TestDeepNeuralNetwork():
+    #TestCasesDeepNeuralNetwork(1,0.003)
+    #TestCasesDeepNeuralNetwork(2,0.003)
+    #TestCasesDeepNeuralNetwork(3,0.003)
+    #TestCasesDeepNeuralNetwork(1,0.003,3001)
+    #TestCasesDeepNeuralNetwork(2,0.003,3001)
+    #TestCasesDeepNeuralNetwork(3,0.003,3001)
 
-    predictions = net1.predict(X_test.T)
-    #accuracy_score(y_test, predictions)
-    print(accuracy_score(y_test, predictions))
-    print('-------Finished Tescase #1 ------- ')
+    #TestCasesDeepNeuralNetwork(3,0.001,3001)
 
+    #TestCasesDeepNeuralNetwork(4,0.001,5001)
 
-    print('-------Start Test case #2 ------- ')
-    NN_ARCHITECTURE = [
-        {"input_dim": 30,  "output_dim": 32,  "activation": "relu"}, # Input Layer
-        {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Hidden Layer -- 1
-        {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Second Hidden Layer
-        {"input_dim": 32,  "output_dim": 32,  "activation": "relu"},# Third Hidden Layer
-        {"input_dim": 32,  "output_dim": 1,   "activation": "sigmoid"},# Output Layer
-    ]
+    ####### BEST FIT ###############3
+    #TestCasesDeepNeuralNetwork(5,0.0003,8001)
+    #TestCasesDeepNeuralNetwork(6,0.0003,10001)
+    TestCasesDeepNeuralNetwork(6,0.0001,30001)
+    
 
-    net2 = DeepNeuralNettwork(NN_ARCHITECTURE)
-    net2.fit(X_train, y_train, epochs=1001, learning_rate=0.003, verbose=True, show_loss=True)
-
-    predictions = net2.predict(X_test.T)
-    #accuracy_score(y_test, predictions)
-    print(accuracy_score(y_test, predictions))
-    print('-------Finished Tescase #2 ------- ')
-
-    print('-------Start Test case #3 ------- ')
-    NN_ARCHITECTURE = [
-        {"input_dim": 30,  "output_dim": 32,  "activation": "relu"}, # Input Layer
-        {"input_dim": 32,  "output_dim": 16,  "activation": "relu"},# Hidden Layer -- 1
-        {"input_dim": 16,  "output_dim": 16,  "activation": "relu"},# Second Hidden Layer
-        {"input_dim": 16,  "output_dim": 16,  "activation": "relu"},# Third Hidden Layer
-        {"input_dim": 16,  "output_dim": 1,   "activation": "sigmoid"},# Output Layer
-    ]
-
-    net3 = DeepNeuralNettwork(NN_ARCHITECTURE)
-    net3.fit(X_train, y_train, epochs=1001, learning_rate=0.003, verbose=True, show_loss=True)
-
-    predictions = net3.predict(X_test.T)
-    #accuracy_score(y_test, predictions)
-    print(accuracy_score(y_test, predictions))
-    print('-------Finished Tescase #3 ------- ')
-
+    
+    
+    
 
     return
 
@@ -1356,22 +1702,6 @@ def SGD(self, training_data, epochs, mini_batch_size, eta,test_data=None):
             else:
                 print("Epoch {0} complete").format(j)
 
-def update_mini_batch(self, mini_batch, eta):
-        """Update the network's weights and biases by applying
-        gradient descent using backpropagation to a single mini batch.
-        The ``mini_batch`` is a list of tuples ``(x, y)``, and ``eta``
-        is the learning rate."""
-        nabla_b = [np.zeros(b.shape) for b in self.biases]
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
-        for x, y in mini_batch:
-            delta_nabla_b, delta_nabla_w = self.backprop(x, y)
-            nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
-            nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-        self.weights = [w-(eta/len(mini_batch))*nw
-                        for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b-(eta/len(mini_batch))*nb
-                       for b, nb in zip(self.biases, nabla_b)]
-
 def OLSRegression(X, y):
     # Runt the linear gression using MSE and 
     # returnt the Ypredict
@@ -1387,6 +1717,8 @@ def OLSRegression(X, y):
         gradients = 2/m * X_b.T.dot(X_b.dot(theta) - y)
         theta = theta - eta * gradients
     
+    #To be deleted
+    Yhat=[]
     ###### KRC ###
     # perform gradient descent to find w
     costs = [] # keep track of squared error cost
@@ -1395,9 +1727,9 @@ def OLSRegression(X, y):
     l1 = 10.0 # Also try 5.0, 2.0, 1.0, 0.1 - what effect does it have on w?
     for t in range(500):
     # update w
-    Yhat = X.dot(w)
-    delta = Yhat - Y
-    w = w - learning_rate*(X.T.dot(delta) + l1*np.sign(w))
+        Yhat = X.dot(w)
+        delta = Yhat - Y
+        w = w - learning_rate*(X.T.dot(delta) + l1*np.sign(w))
 
     # find and store the cost
     mse = delta.dot(delta) / N
@@ -1414,89 +1746,6 @@ def OLSRegression(X, y):
     plt.plot(w, label='w_map')
     plt.legend()
     plt.show()
-    return
-
-def SGDLinearReg(Samples):
-    # Part 2.A
-    # Write a Stochastic Gradient Descent algoritm to replace the cost function
-    # for OLS and Ridge methods. The previous code for matrix invesion to find betha,
-    # will be replaced med SDGM.
-    # Routine will use Franke's data passed in as "z"
-    # 1) Ramdomized weight mattrix as a starting point.
-    # 2) Calculate the differential, with respect to the cost function.
-    # 2.1 We need a cost funcion for both OLS/MSE & Ridge
-    # 3) Kalkulate for one instance at a time and correct weight.
-    # 4) Repeate until you have reaced a stopin point, or error ≈ 0.
-    # 5) Tune hyperparameters and compare to MSE and Ridge.
-    # Sjekk ut random_indices = np.random.choice(indices, size=5) for bruk
-    # 6) Set up mini batches, based on the total datapoints.
-    # 7) Gjør analyse av size på Minibatch mot total tid mot presisjon
-    # 8) Benytt adagrad (finn eller lage en python fun())
-
-    # som stokastisk selector.
-
-    Samples=100
-    #Epoch = 50
-    Epochs=100
-    p=1
-    
-    np.random.seed(1776)
-
-    # Learning rate parameters
-    # Test different values for t0 & t1
-    t0, t1 = 5, 50   
-    def LearningRate(t):
-        return t0 / (t + t1)
-
-    X = 2 * np.random.rand(100, 1)
-    y = 4 + 3 * X + np.random.randn(100, 1)
-    
-    #Check with the best Theta
-
-    X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
-    theta_path_sgd = []
-    m = len(X_b)
-
-    theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)    
-    X_new = np.array([[0], [2]])
-    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
-
-    X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
-    yPredict = X_new_b.dot(theta_best)
-    print(yPredict)
-
-    StepSize = 0.1 #Will be adjusted proportional to the gradient.
-    Weights = np.random.randn(2,1)
-
-    #Loop over # of Epochs
-    for CurrEpoch in range(Epochs):
-        #Loop through 1 full Epoch (Samples)
-        for i in range(Samples):                
-            #MiniBatch=GetRandomBatches(Samples)
-            if CurrEpoch == 0 and i < 10:                   
-                YPredict = X_new_b.dot(Weights)             
-                style = "b-" if i > 0 else "r--"           
-                plt.plot(X_new, YPredict, style)     
-            SelectedIndex=GetRandomIndex(Samples)
-            xSelected = X_b[SelectedIndex:SelectedIndex+1]
-            ySelected = y[SelectedIndex:SelectedIndex+1]
-            Gradient = (2 * xSelected.T.dot(xSelected.dot(Weights) - ySelected))
-            StepSize = LearningRate(CurrEpoch * m + i)
-            Weights = Weights - StepSize * Gradient
-            theta_path_sgd.append(Weights)   
-
-            #gradients = 2 * xi.T.dot(xi.dot(theta) - yi)
-            #eta = learning_schedule(epoch * m + i)
-            #theta = theta - eta * gradients
-            #theta_path_sgd.append(theta)
-
-    print(Weights)
-    plt.plot(X, y, "b.")                                 
-    plt.xlabel("$x_1$", fontsize=18)                
-    plt.ylabel("$y$", rotation=0, fontsize=18)   
-    plt.axis([0, 2, 0, 15])                      
-    #save_fig("sgd_plot")                        
-    plt.show()      
     return
 
 def TestSGDLinearReg():
@@ -1543,16 +1792,14 @@ def ReadDataLogRegression():
 def DesignLogRegressionModel():
     print('Design model')
     return
-def TrainLogRegression():
-    return
 
 # Part 2-A
 # Write the part of the code which reads in the data and sets up the relevant data sets.
 #
 def LogisticRegression():
-    ReadDataLogRegression()
-    DesignLogRegressionModel()
-    TrainLogRegression()
+    TestRegression()
+    # ReadDataLogRegression()
+    # DesignLogRegressionModel()
     return
 
 def MainModule():
@@ -1620,15 +1867,17 @@ def MainModule():
     #RealDataAnalyzis(PolyDim,Lamdas,Folds,Bootstraps,x,y,z,Samples)
     
     #Project 2
-    #Part A
-    SGDLinearReg(Samples)
-    TestSGDLinearReg()
-    # - OK TestDeepNeuralNetwork()
 
+    #TestLinearRegression()
+    #TestDeepNeuralNetwork()
+    MNISTLogisticRegression()
+    
+    #LogisticRegression()
+    #LogisticRegNormEqu()
+    #TestSGDLinearReg()
     #FFNNRegression()
     #NNMnist()
-    #MNISTLogisticRegression()
-    #LogisticRegression()
+    
     #NN()
     return
 
